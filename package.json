@@ -1,0 +1,29 @@
+{
+  "name": "sst-epi-firebase-next",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "migrate:workspace": "node functions/scripts/migrate-workspace-units.js",
+    "reset:deliveries": "node functions/scripts/reset-deliveries-before-date.js"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "1.7.0",
+    "clsx": "^2.1.1",
+    "face-api.js": "^0.22.2",
+    "firebase": "^11.0.0",
+    "lucide-react": "^0.500.0",
+    "next": "^15.0.0",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^2.6.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17"
+  }
+}

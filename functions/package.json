@@ -1,0 +1,19 @@
+{
+  "name": "sst-epi-firebase-functions",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log",
+    "migrate:workspace": "node scripts/migrate-workspace-units.js",
+    "reset:deliveries": "node scripts/reset-deliveries-before-date.js"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.5.0",
+    "firebase-functions": "^6.0.0"
+  }
+}

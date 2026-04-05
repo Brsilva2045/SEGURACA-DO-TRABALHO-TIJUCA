@@ -1,0 +1,137 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function authWorkspaceUnitId() {
+      return signedIn() && request.auth.token.workspaceUnitId is string
+        ? request.auth.token.workspaceUnitId
+        : "";
+    }
+
+    function authWorkspaceUnitName() {
+      return signedIn() && request.auth.token.workspaceUnitName is string
+        ? request.auth.token.workspaceUnitName
+        : "";
+    }
+
+    function userProfileExists() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userWorkspaceUnitId() {
+      return userProfileExists()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.workspaceUnitId
+        : "";
+    }
+
+    function userWorkspaceUnitName() {
+      return userProfileExists()
+        ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.workspaceUnitName
+        : "";
+    }
+
+    function isLegacyMessejanaDoc(data) {
+      return data.workspaceUnitId == "matriz" || data.workspaceUnitName == "Matriz";
+    }
+
+    function canReadWorkspace(data) {
+      return signedIn()
+        && (
+          (data.workspaceUnitId == authWorkspaceUnitId() && data.workspaceUnitName == authWorkspaceUnitName())
+          || (data.workspaceUnitId == userWorkspaceUnitId() && data.workspaceUnitName == userWorkspaceUnitName())
+          || (authWorkspaceUnitId() == "tijuca-messejana" && isLegacyMessejanaDoc(data))
+          || (userWorkspaceUnitId() == "tijuca-messejana" && isLegacyMessejanaDoc(data))
+        );
+    }
+
+    function canCreateWorkspace() {
+      return signedIn()
+        && (
+          (request.resource.data.workspaceUnitId == authWorkspaceUnitId() && request.resource.data.workspaceUnitName == authWorkspaceUnitName())
+          || (request.resource.data.workspaceUnitId == userWorkspaceUnitId() && request.resource.data.workspaceUnitName == userWorkspaceUnitName())
+        );
+    }
+
+    function canUpdateWorkspace(data) {
+      return signedIn()
+        && (
+          (
+            request.resource.data.workspaceUnitId == authWorkspaceUnitId()
+            && request.resource.data.workspaceUnitName == authWorkspaceUnitName()
+            && data.workspaceUnitId == authWorkspaceUnitId()
+            && data.workspaceUnitName == authWorkspaceUnitName()
+          )
+          || (
+            request.resource.data.workspaceUnitId == userWorkspaceUnitId()
+            && request.resource.data.workspaceUnitName == userWorkspaceUnitName()
+            && data.workspaceUnitId == userWorkspaceUnitId()
+            && data.workspaceUnitName == userWorkspaceUnitName()
+          )
+          || (authWorkspaceUnitId() == "tijuca-messejana" && isLegacyMessejanaDoc(data))
+          || (userWorkspaceUnitId() == "tijuca-messejana" && isLegacyMessejanaDoc(data))
+        );
+    }
+
+    function isAllowedDeliveryUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        "receiptPdfPath",
+        "receiptPdfUrl",
+        "receiptGeneratedAt",
+        "receiptGeneratedBy",
+        "updatedAt"
+      ]);
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn() && request.auth.uid == userId;
+      allow create, update, delete: if false;
+    }
+
+    match /employees/{employeeId} {
+      allow read: if canReadWorkspace(resource.data);
+      allow create: if canCreateWorkspace();
+      allow update: if canUpdateWorkspace(resource.data);
+      allow delete: if canReadWorkspace(resource.data);
+    }
+
+    match /epi_items/{itemId} {
+      allow read: if canReadWorkspace(resource.data);
+      allow create: if canCreateWorkspace();
+      allow update: if canUpdateWorkspace(resource.data);
+      allow delete: if canReadWorkspace(resource.data);
+    }
+
+    match /occurrences/{occurrenceId} {
+      allow read: if canReadWorkspace(resource.data);
+      allow create: if canCreateWorkspace();
+      allow update: if canUpdateWorkspace(resource.data);
+      allow delete: if canReadWorkspace(resource.data);
+    }
+
+    match /deliveries/{deliveryId} {
+      allow read: if canReadWorkspace(resource.data);
+      allow create: if canCreateWorkspace();
+      allow update: if canUpdateWorkspace(resource.data) && isAllowedDeliveryUpdate();
+      allow delete: if false;
+    }
+
+    match /stock_movements/{movementId} {
+      allow read: if canReadWorkspace(resource.data);
+      allow create: if canCreateWorkspace();
+      allow update, delete: if false;
+    }
+
+    match /stock_alerts/{alertId} {
+      allow read: if canReadWorkspace(resource.data);
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
